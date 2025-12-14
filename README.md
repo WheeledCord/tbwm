@@ -15,6 +15,8 @@ make
 
 ## Running
 
+you dont need it but you should install foot bc it uses foot tho you can change it, it adds its own config ykyk
+
 ```bash
 ./dwl
 ```
