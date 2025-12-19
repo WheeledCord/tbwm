@@ -1,3 +1,6 @@
+<img width="1300" height="300" alt="logo" src="https://github.com/user-attachments/assets/18a14fa4-ebef-4780-a661-e86016124134" />
+
+
 # TurboWM (tbwm)
 
 a dynamic tiling wayland compositor with shitty scheme scripting
