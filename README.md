@@ -17,7 +17,15 @@ dependencies:
 - libinput, xkbcommon
 - freetype2, pangocairo
 - libxcb, xcb-icccm (for XWayland)
-(tho you should also get foot)
+
+(you should also get foot)
+
+```pacman
+sudo pacman -S wlroots0.19 wayland-protocols wayland libinput libxkbcommon freetype2 pango libxcb xcb-util-wm foot
+```
+```apt
+sudo apt install libwlroots-dev wayland-protocols libwayland-dev libinput-dev libxkbcommon-dev libfreetype6-dev libpango1.0-dev libxcb1-dev libxcb-icccm4-dev
+```
 
 then run install.sh
 then ./tbwm
