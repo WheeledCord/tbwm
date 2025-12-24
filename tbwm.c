@@ -619,7 +619,7 @@ static int cfg_font_size = 16;
 static int cfg_repeat_rate = 25;
 static int cfg_repeat_delay = 600;
 
-/* Trackpad settings */
+/* Pointer settings */
 static int cfg_tap_to_click = 1;
 static int cfg_tap_and_drag = 1;
 static int cfg_drag_lock = 1;
@@ -5805,7 +5805,7 @@ static const char *default_config_parts[] = {
 "\n"
 ";;;; ==================== INPUT DEVICES ====================\n"
 "\n"
-";; Trackpad settings\n"
+";; Pointer settings\n"
 "(set-tap-to-click #t)\n"
 "(set-natural-scrolling #f)\n"
 "(set-accel-speed 0.0)  ; -1.0 to 1.0\n"
