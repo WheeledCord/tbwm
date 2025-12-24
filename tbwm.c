@@ -570,6 +570,7 @@ static char cfg_menu_button[16] = "X";             /* app menu button label */
 /* App menu state */
 static int appmenu_active = 0;
 static struct wlr_scene_buffer *appmenu_buffer = NULL;
+static struct TitleBuffer *appmenu_tb = NULL;  /* cached buffer for reuse */
 
 /* App launcher data structures */
 #define MAX_APPS 512
@@ -611,7 +612,7 @@ static float cfg_focuscolor[4] = {0.0f, 0.333f, 0.467f, 1.0f};
 static float cfg_fullscreen_bg[4] = {0.0f, 0.0f, 0.0f, 1.0f};
 
 /* Grid font settings */
-static char cfg_font_path[512] = "/home/fionn/.local/share/fonts/PxPlus_IBM_VGA_8x16.ttf";
+static char cfg_font_path[512] = "/usr/share/fonts/tbwm/PxPlus_IBM_VGA_8x16.ttf";
 static int cfg_font_size = 16;
 
 /* Keyboard settings */
@@ -1321,6 +1322,10 @@ cleanup(void)
 	/* Clean up app menu buffer */
 	if (appmenu_buffer) {
 		wlr_scene_buffer_set_buffer(appmenu_buffer, NULL);
+	}
+	if (appmenu_tb) {
+		wlr_buffer_drop(&appmenu_tb->base);
+		appmenu_tb = NULL;
 	}
 
 	/* Clean up REPL buffer */
@@ -6537,11 +6542,15 @@ updateappmenu(void)
 		return;
 	}
 	
-	/* Create buffer */
-	tb = ecalloc(1, sizeof(*tb));
-	tb->stride = menu_width * 4;
-	tb->data = ecalloc(1, tb->stride * menu_height);
-	titlebuf_alloc_count++; wlr_buffer_init(&tb->base, &titlebuf_impl, menu_width, menu_height);
+	/* Reuse cached buffer or allocate new one */
+	if (!appmenu_tb) {
+		appmenu_tb = ecalloc(1, sizeof(*appmenu_tb));
+		appmenu_tb->stride = menu_width * 4;
+		appmenu_tb->data = ecalloc(1, appmenu_tb->stride * menu_height);
+		wlr_buffer_init(&appmenu_tb->base, &titlebuf_impl, menu_width, menu_height);
+		titlebuf_alloc_count++;
+	}
+	tb = appmenu_tb;
 	pixels = tb->data;
 	
 	/* Fill entire background with content color first */
@@ -6724,7 +6733,7 @@ updateappmenu(void)
 		wlr_scene_node_set_position(&appmenu_buffer->node, sgeom.x, sgeom.y + cell_height);
 	}
 	wlr_scene_buffer_set_buffer(appmenu_buffer, &tb->base);
-	wlr_buffer_drop(&tb->base);
+	/* Don't drop - we're caching the buffer for reuse */
 }
 
 /* Key helper: reload configuration (wrapper so we can bind it in C defaults) */

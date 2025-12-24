@@ -9,6 +9,12 @@ echo "=== Installing TurboWM ==="
 sudo cp tbwm /usr/local/bin/
 sudo chmod 755 /usr/local/bin/tbwm
 
+# Install font
+echo "Installing font..."
+sudo mkdir -p /usr/share/fonts/tbwm
+sudo cp PxPlus_IBM_VGA_8x16.ttf /usr/share/fonts/tbwm/
+sudo fc-cache -f /usr/share/fonts/tbwm 2>/dev/null || true
+
 # Create wayland-sessions directory if it doesn't exist
 sudo mkdir -p /usr/share/wayland-sessions
 
@@ -22,7 +28,7 @@ Type=Application
 EOF
 
 echo ""
-echo "=== Done! ==="
 echo "TurboWM installed to /usr/local/bin/tbwm"
+echo "Font installed to /usr/share/fonts/tbwm/"
 echo "Session file installed to /usr/share/wayland-sessions/tbwm.desktop"
 echo "Log out and select 'TurboWM' from your display manager."

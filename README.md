@@ -19,8 +19,7 @@ dependencies:
 - libxcb, xcb-icccm (for XWayland)
 (tho you should also get foot)
 
-then run make
-
-run with ./tbwm
+then run install.sh
+then ./tbwm
 
 configuration is done via ~/.config/tbwm/config.scm
