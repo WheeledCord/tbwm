@@ -4648,6 +4648,28 @@ setup(void)
 	 * Initialise the XWayland X server.
 	 * It will be started when the first X client is started.
 	 */
+	{
+		/* Check if Xwayland binary exists */
+		const char *xwayland_paths[] = {
+			"/usr/bin/Xwayland",
+			"/usr/local/bin/Xwayland",
+			"/bin/Xwayland",
+			NULL
+		};
+		int xwayland_found = 0;
+		for (int i = 0; xwayland_paths[i]; i++) {
+			if (access(xwayland_paths[i], X_OK) == 0) {
+				xwayland_found = 1;
+				tbwm_log(TBWM_LOG_INFO, "tbwm: Found Xwayland at %s\n", xwayland_paths[i]);
+				break;
+			}
+		}
+		if (!xwayland_found) {
+			tbwm_log(TBWM_LOG_WARN, "tbwm: WARNING: Xwayland binary not found in standard paths\n");
+			tbwm_log(TBWM_LOG_WARN, "tbwm: Install xorg-xwayland package for X11 app support\n");
+		}
+	}
+	
 	if ((xwayland = wlr_xwayland_create(dpy, compositor, 1))) {
 		wl_signal_add(&xwayland->events.ready, &xwayland_ready);
 		wl_signal_add(&xwayland->events.new_surface, &new_xwayland_surface);
@@ -4656,6 +4678,7 @@ setup(void)
 		tbwm_log(TBWM_LOG_INFO, "tbwm: XWayland started on DISPLAY=%s\n", xwayland->display_name);
 	} else {
 		tbwm_log(TBWM_LOG_ERROR, "tbwm: ERROR: failed to setup XWayland X server, continuing without it\n");
+		tbwm_log(TBWM_LOG_ERROR, "tbwm: Check: 1) xorg-xwayland installed  2) /tmp/.X11-unix writable  3) no stale X locks in /tmp\n");
 	} 
 #endif
 }
