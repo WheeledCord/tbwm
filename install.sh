@@ -251,11 +251,26 @@ install_tbwm() {
     sudo chmod 755 /usr/local/bin/tbwm
     success "Installed /usr/local/bin/tbwm"
     
-    # Font
+    # Font: copy from local fonts/ directory (no network)
     sudo mkdir -p /usr/share/fonts/tbwm
-    sudo cp PxPlus_IBM_VGA_8x16.ttf /usr/share/fonts/tbwm/
+    if [ -f fonts/PxPlus_IBM_VGA_8x16.ttf ]; then
+        sudo cp fonts/PxPlus_IBM_VGA_8x16.ttf /usr/share/fonts/tbwm/
+    elif [ -f PxPlus_IBM_VGA_8x16.ttf ]; then
+        sudo cp PxPlus_IBM_VGA_8x16.ttf /usr/share/fonts/tbwm/
+    else
+        warn "PxPlus_IBM_VGA_8x16.ttf not found in fonts/; skipping font install"
+    fi
+
+    if [ -f fonts/unscii-8x16.ttf ]; then
+        sudo cp fonts/unscii-8x16.ttf /usr/share/fonts/tbwm/
+    elif [ -f unscii-8x16.ttf ]; then
+        sudo cp unscii-8x16.ttf /usr/share/fonts/tbwm/
+    else
+        warn "unscii-8x16.ttf not found in fonts/; skipping fallback font install"
+    fi
+
     sudo fc-cache -f /usr/share/fonts/tbwm 2>/dev/null || true
-    success "Installed font"
+    success "Installed fonts (from fonts/ directory)"
     
     # Session file for display managers
     sudo mkdir -p /usr/share/wayland-sessions

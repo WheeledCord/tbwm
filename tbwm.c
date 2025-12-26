@@ -463,6 +463,7 @@ static int cell_width = 8;
 static int cell_height = 16;
 static FT_Library ft_library;
 static FT_Face ft_face;
+static FT_Face ft_fallback_face;
 
 /* Glyph cache - store pre-rendered glyphs to avoid repeated FT_Load_Char calls */
 #define GLYPH_CACHE_SIZE 512
@@ -603,6 +604,7 @@ static float cfg_fullscreen_bg[4] = {0.0f, 0.0f, 0.0f, 1.0f};
 
 /* Grid font settings */
 static char cfg_font_path[512] = "/usr/share/fonts/tbwm/PxPlus_IBM_VGA_8x16.ttf";
+static char cfg_fallback_font_path[512] = "/usr/share/fonts/tbwm/unscii-8x16.ttf";
 static int cfg_font_size = 16;
 
 /* Keyboard settings */
@@ -1233,9 +1235,12 @@ buttonpress(struct wl_listener *listener, void *data)
 			/* Only consider clicks in the top frame row */
 			if (rel_y >= 0 && rel_y < cell_height) {
 				int width_cells = c->geom.width / cell_width;
-				int reserved_btn_cells = 8;
-				int btn_start_cell = width_cells - 2 - reserved_btn_cells; /* cell index */
+				int btn_cells = 7; /* [F](3) + sep(1) + [X](3) */
+				int right_gap = 2; /* h_line + corner */
+				int btn_start_cell = width_cells - btn_cells - right_gap;
+				if (btn_start_cell < 2) btn_start_cell = 2;
 				int bx = btn_start_cell * cell_width; /* pixel x relative to client */
+
 				/* [F] occupies bx .. bx+3*cell_width-1 */
 				if (rel_x >= bx && rel_x < bx + cell_width * 3) {
 					/* Toggle floating for this client */
@@ -1248,6 +1253,16 @@ buttonpress(struct wl_listener *listener, void *data)
 				if (rel_x >= bx + cell_width * 4 && rel_x < bx + cell_width * 7) {
 					/* Close this client */
 					client_send_close(c);
+					return;
+				}
+
+				/* Click on top frame but not on buttons: start move (no Super required) */
+				{
+					Arg a = { .ui = CurMove };
+					/* focus before moving */
+					if (!client_is_unmanaged(c) || client_wants_focus(c))
+						focusclient(c, 1);
+					moveresize(&a);
 					return;
 				}
 			}
@@ -1388,6 +1403,10 @@ cleanup(void)
 	if (ft_face) {
 		FT_Done_Face(ft_face);
 		ft_face = NULL;
+	}
+	if (ft_fallback_face) {
+		FT_Done_Face(ft_fallback_face);
+		ft_fallback_face = NULL;
 	}
 	if (ft_library) {
 		FT_Done_FreeType(ft_library);
@@ -4722,6 +4741,14 @@ setupgrid(void)
 
 	FT_Set_Pixel_Sizes(ft_face, 0, cfg_font_size);
 
+	/* Try to load fallback font (optional) */
+	if (FT_New_Face(ft_library, cfg_fallback_font_path, 0, &ft_fallback_face) == 0) {
+		FT_Set_Pixel_Sizes(ft_fallback_face, 0, cfg_font_size);
+		tbwm_log(TBWM_LOG_INFO, "Loaded fallback font: %s", cfg_fallback_font_path);
+	} else {
+		ft_fallback_face = NULL;
+	}
+
 	/* Get cell dimensions from font metrics */
 	if (FT_Load_Char(ft_face, 'M', FT_LOAD_DEFAULT) == 0) {
 		cell_width = ft_face->glyph->advance.x >> 6;
@@ -5524,6 +5551,27 @@ static s7_pointer scm_set_font(s7_scheme *sc, s7_pointer args) {
 	return s7_t(sc);
 }
 
+/* Scheme: (set-fallback-font path) */
+static s7_pointer scm_set_fallback_font(s7_scheme *sc, s7_pointer args) {
+	const char *path;
+	if (!s7_is_string(s7_car(args)))
+		return s7_f(sc);
+	path = s7_string(s7_car(args));
+	strncpy(cfg_fallback_font_path, path, sizeof(cfg_fallback_font_path) - 1);
+	/* Reinitialize fallback face */
+	if (ft_fallback_face) FT_Done_Face(ft_fallback_face);
+	if (FT_New_Face(ft_library, cfg_fallback_font_path, 0, &ft_fallback_face) == 0) {
+		FT_Set_Pixel_Sizes(ft_fallback_face, 0, cfg_font_size);
+		tbwm_log(TBWM_LOG_INFO, "tbwm: fallback font changed to %s\n", cfg_fallback_font_path);
+		/* Invalidate glyph cache so new glyphs are loaded */
+		for (int i = 0; i < GLYPH_CACHE_SIZE; i++)
+			glyph_cache[i].valid = 0;
+		updateframes();
+		updatebars();
+	}
+	return s7_t(sc);
+}
+
 /* Scheme: (set-repeat-rate rate delay) */
 static s7_pointer scm_set_repeat_rate(s7_scheme *sc, s7_pointer args) {
 	if (!s7_is_integer(s7_car(args)) || !s7_is_integer(s7_cadr(args)))
@@ -5716,6 +5764,7 @@ setup_scheme(void)
 	s7_define_function(sc, "tag-all", scm_tag_all, 0, 0, false, "(tag-all) set window to all tags");
 
 	/* Meta */
+	 s7_define_function(sc, "set-fallback-font", scm_set_fallback_font, 1, 0, false, "(set-fallback-font path) set fallback font path (TTF)");
 	s7_define_function(sc, "eval-string", scm_eval_string, 1, 0, false, "(eval-string str) evaluate Scheme code");
 	s7_define_function(sc, "reload-config", scm_reload_config, 0, 0, false, "(reload-config) reload config file");
 
@@ -7503,13 +7552,28 @@ get_cached_glyph(unsigned long charcode)
 	idx = (empty_slot >= 0) ? empty_slot : start_idx;
 	cg = &glyph_cache[idx];
 
-	/* Need to load this glyph */
+	/* Need to load this glyph. Try primary font, then fallback, then '?'. */
+	int used_fallback = 0;
 	if (FT_Load_Char(ft_face, charcode, FT_LOAD_RENDER)) {
-		if (charcode != '?' && FT_Load_Char(ft_face, '?', FT_LOAD_RENDER))
-			return NULL;
+		if (ft_fallback_face && FT_Load_Char(ft_fallback_face, charcode, FT_LOAD_RENDER) == 0) {
+			used_fallback = 1;
+		} else {
+			/* Try question-mark fallback */
+			if (charcode != '?') {
+				if (FT_Load_Char(ft_face, '?', FT_LOAD_RENDER)) {
+					if (ft_fallback_face && FT_Load_Char(ft_fallback_face, '?', FT_LOAD_RENDER) == 0) {
+						used_fallback = 1;
+					} else {
+						return NULL;
+					}
+				}
+			} else {
+				return NULL;
+			}
+		}
 	}
 
-	slot = ft_face->glyph;
+	slot = used_fallback ? ft_fallback_face->glyph : ft_face->glyph;
 
 	/* Free old bitmap if present */
 	if (cg->bitmap) {
