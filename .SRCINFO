@@ -1,0 +1,31 @@
+pkgbase = tbwm
+	pkgdesc = TurboWM - A Wayland compositor with s7 Scheme configuration and retro DOS aesthetics
+	pkgver = 0.1.0
+	pkgrel = 1
+	url = https://github.com/WheeledCord/dwl
+	arch = x86_64
+	license = GPL-3.0-or-later
+	license = MIT
+	makedepends = git
+	makedepends = wayland-protocols
+	makedepends = pkg-config
+	depends = wlroots>=0.19
+	depends = wayland
+	depends = libinput
+	depends = libxkbcommon
+	depends = pixman
+	depends = freetype2
+	depends = pango
+	depends = cairo
+	depends = libxcb
+	depends = xcb-util-wm
+	depends = xorg-xwayland
+	optdepends = foot: recommended terminal emulator
+	optdepends = fuzzel: application launcher
+	optdepends = waybar: alternative status bar
+	provides = tbwm
+	conflicts = tbwm-git
+	source = git+https://github.com/WheeledCord/dwl.git
+	sha256sums = SKIP
+
+pkgname = tbwm
