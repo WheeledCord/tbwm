@@ -233,6 +233,10 @@ build_tbwm() {
     # Clean without regenerating protocol headers
     rm -f tbwm *.o 2>/dev/null || true
     
+    # Touch protocol headers to prevent make from regenerating them
+    # (they're already in the repo, but git clone can mess up timestamps)
+    touch *-protocol.h 2>/dev/null || true
+    
     TMPDIR="$HOME" make -j$(nproc)
     
     success "TurboWM built successfully"
