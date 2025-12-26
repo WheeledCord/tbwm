@@ -337,7 +337,7 @@ main() {
     echo ""
     echo "To use TurboWM:"
     echo "  • Log out and select 'TurboWM' from your display manager"
-    echo "  • Or run: tbwm-wrapper (from a TTY)"
+    echo "  • Or run: tbwm (from a TTY)"
     echo ""
     echo "Config file: ~/.config/tbwm/config.scm"
     echo ""
