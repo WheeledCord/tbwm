@@ -1,6 +1,9 @@
 #!/bin/bash
 set -e
 
+# Get the directory where this script lives
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -52,13 +55,15 @@ install_deps() {
                 fontconfig ttf-font || true
             ;;
         debian|ubuntu|pop|linuxmint|elementary)
-            # Debian-based
+            # Debian-based - note: libwlroots-dev often not available or too old
             sudo apt-get update
             sudo apt-get install -y \
-                libwlroots-dev libwayland-dev wayland-protocols \
+                libwayland-dev wayland-protocols \
                 libinput-dev libxkbcommon-dev libpixman-1-dev \
                 libfreetype-dev libpango1.0-dev libcairo2-dev \
                 libxcb1-dev libxcb-icccm4-dev xwayland \
+                libdrm-dev libgbm-dev libseat-dev \
+                libdisplay-info-dev libliftoff-dev hwdata \
                 meson ninja-build gcc pkg-config make git \
                 fontconfig || true
             ;;
@@ -218,11 +223,16 @@ build_wlroots() {
 build_tbwm() {
     info "Building TurboWM..."
     
-    # Make sure we can find locally-installed wlroots
-    export PKG_CONFIG_PATH="/usr/local/lib/pkgconfig:/usr/local/lib64/pkgconfig:$PKG_CONFIG_PATH"
-    export LD_LIBRARY_PATH="/usr/local/lib:/usr/local/lib64:$LD_LIBRARY_PATH"
+    # Go back to source directory (in case we built wlroots)
+    cd "$SCRIPT_DIR"
     
-    TMPDIR="$HOME" make clean 2>/dev/null || true
+    # Make sure we can find locally-installed wlroots
+    export PKG_CONFIG_PATH="/usr/local/lib/pkgconfig:/usr/local/lib64/pkgconfig:/usr/local/lib/x86_64-linux-gnu/pkgconfig:$PKG_CONFIG_PATH"
+    export LD_LIBRARY_PATH="/usr/local/lib:/usr/local/lib64:/usr/local/lib/x86_64-linux-gnu:$LD_LIBRARY_PATH"
+    
+    # Clean without regenerating protocol headers
+    rm -f tbwm *.o 2>/dev/null || true
+    
     TMPDIR="$HOME" make -j$(nproc)
     
     success "TurboWM built successfully"
