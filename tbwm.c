@@ -7914,7 +7914,7 @@ render_tabs:
 			/* Calculate right-aligned position */
 			int total_chars = 0;
 			if (cfg_show_date && cfg_show_time) {
-				total_chars = date_len + time_len + 5; /* | date | time */
+				total_chars = date_len + time_len + 7; /* | date | time */
 			} else if (cfg_show_date) {
 				total_chars = date_len + 3; /* | date */
 			} else if (cfg_show_time) {
