@@ -649,7 +649,7 @@ static int any_title_needs_scroll = 0;   /* track if any title needs scrolling *
 static int scroll_only_bar_update = 0;   /* 1 = only update scrolling tabs, skip static */
 
 /* REPL state */
-static int repl_visible = 1;             /* 1 = REPL background/text visible */
+static int repl_visible = 0;             /* 0 = REPL background/text hidden unless active */
 static int repl_input_active = 0;        /* 1 = REPL accepting keyboard input */
 static char repl_input[1024] = {0};      /* current input line */
 static int repl_input_len = 0;
@@ -6891,6 +6891,7 @@ void
 togglerepl(const Arg *arg)
 {
 	repl_input_active = !repl_input_active;
+	repl_visible = repl_input_active;
 	repl_input[0] = '\0';
 	repl_input_len = 0;
 	updatebars();
@@ -7412,9 +7413,11 @@ replkey(xkb_keysym_t sym)
 {
 	if (sym == XKB_KEY_Escape) {
 		repl_input_active = 0;
+		repl_visible = 0;
 		repl_input[0] = '\0';
 		repl_input_len = 0;
 		updatebars();
+		updaterepl();
 		return 1;
 	}
 
