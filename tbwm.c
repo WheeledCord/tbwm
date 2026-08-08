@@ -3191,8 +3191,11 @@ void
 handlesig(int signo)
 {
 	if (signo == SIGCHLD) {
-		/* Reap children (async-signal-safe) */
-		while (waitpid(-1, NULL, WNOHANG) > 0);
+		/* Do NOT reap children here: reaping in the handler consumes the
+		 * child PID, so signal_fd_cb() can no longer match screenshot_pid
+		 * and reset screenshot_mode, leaving the compositor stuck in grab
+		 * mode forever. signal_fd_cb() performs the reaping and the state
+		 * reset in the main loop. */
 		/* Wake main loop so it can handle reaping/logging */
 		if (signal_fd >= 0) {
 			uint64_t one = 1;
