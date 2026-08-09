@@ -1,3 +1,8 @@
+btw im rewriting this for x11 because i want it to be more compatible with older hardware given the look. might switch scheme scripting to forth too. coming soon...........z
+
+this current one is pretty optimized and buggy and not maintained really
+
+
 <img width="1300" height="300" alt="logo" src="https://github.com/user-attachments/assets/18a14fa4-ebef-4780-a661-e86016124134" />
 
 
